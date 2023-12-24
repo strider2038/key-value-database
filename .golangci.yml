@@ -1,0 +1,126 @@
+run:
+  skip-dirs:
+    - var
+linters:
+  enable:
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - contextcheck
+    - cyclop
+    - dogsled
+    - dupl
+    - durationcheck
+    - errcheck
+    - errorlint
+    - exportloopref
+    - forbidigo
+    - forcetypeassert
+    - funlen
+    - gci
+    - gocognit
+    - goconst
+    - gocritic
+    - gocyclo
+    - godot
+    - godox
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goimports
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosimple
+    - govet
+    - importas
+    - ineffassign
+    - makezero
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - noctx
+    - noctx
+    - nolintlint
+    - prealloc
+    - predeclared
+    - promlinter
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - stylecheck
+    - tenv
+    - testableexamples
+    - testpackage
+    - testpackage
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - unused
+    - whitespace
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: cmd
+      linters:
+        - forbidigo
+    - path: _test\.go
+      linters:
+        - contextcheck
+        - cyclop
+        - dupl
+        - errcheck
+        - errorlint
+        - exportloopref
+        - forcetypeassert
+        - funlen
+        - gochecknoglobals
+        - goconst
+        - gocyclo
+        - goerr113
+        - gosec
+        - lll
+    - path: example.*_test\.go
+      linters:
+        - contextcheck
+        - cyclop
+        - dupl
+        - errcheck
+        - exportloopref
+        - forcetypeassert
+        - funlen
+        - gochecknoglobals
+        - goconst
+        - gocyclo
+        - goerr113
+        - gosec
+        - lll
+        - revive
+        - staticcheck
+    - path: test
+      linters:
+        - contextcheck
+        - cyclop
+        - dupl
+        - errcheck
+        - exportloopref
+        - forcetypeassert
+        - funlen
+        - gochecknoglobals
+        - goconst
+        - gocyclo
+        - goerr113
+        - gosec
+        - lll
+        - testpackage
+        - unparam
+
+linters-settings:
+  revive:
+    rules:
+      - name: unused-parameter
+        disabled: true

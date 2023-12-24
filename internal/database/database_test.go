@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/strider2038/key-value-database/internal/database"
-	"github.com/strider2038/key-value-database/internal/database/computing"
+	"github.com/strider2038/key-value-database/internal/database/computing/basic/analyzing"
+	"github.com/strider2038/key-value-database/internal/di"
 )
 
 type DatabaseTestStep struct {
@@ -43,7 +43,7 @@ func TestDatabase_Execute(t *testing.T) {
 				},
 				{
 					Request:      "GET key",
-					WantResponse: "VALUE value",
+					WantResponse: "value",
 				},
 				{
 					Request:      "DEL key",
@@ -51,14 +51,32 @@ func TestDatabase_Execute(t *testing.T) {
 				},
 				{
 					Request:      "GET key",
-					WantResponse: "NOT FOUND",
+					WantResponse: "$_",
+				},
+			},
+		},
+		{
+			name: "get not found",
+			steps: []DatabaseTestStep{
+				{
+					Request:      "GET key",
+					WantResponse: "$_",
+				},
+			},
+		},
+		{
+			name: "invalid command",
+			steps: []DatabaseTestStep{
+				{
+					Request:   "GET",
+					WantError: analyzing.ErrNotEnoughArguments,
 				},
 			},
 		},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			db := database.NewDatabase(computing.NewComputer())
+			db := di.NewDatabase(di.Options{})
 
 			for i, step := range test.steps {
 				response, err := db.Execute(context.Background(), step.Request)

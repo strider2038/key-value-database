@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ '*' ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ^1.21
+        id: go
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up dependencies
+        run: go mod download
+
+      - name: Run golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.54
+
+      - name: Run tests
+        run: go test -race -v $(go list ./... | grep -v vendor)
+
+      - name: Code Climate Coverage
+        uses: paambaati/codeclimate-action@v3.2.0
+        env:
+          CC_TEST_REPORTER_ID: ${{ secrets.CC_TEST_REPORTER_ID }}
+        with:
+          coverageCommand: go test -v ./... -coverpkg ./internal/... -coverprofile=c.out
+          prefix: "github.com/strider2038/key-value-database"

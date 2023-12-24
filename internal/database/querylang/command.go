@@ -2,13 +2,24 @@ package querylang
 
 type CommandID int
 
+func (c CommandID) String() string {
+	switch c {
+	case CommandGet:
+		return "GET"
+	case CommandSet:
+		return "SET"
+	case CommandDel:
+		return "DET"
+	default:
+		return ""
+	}
+}
+
 const (
 	CommandUnknown CommandID = iota
 	CommandSet
 	CommandGet
 	CommandDel
-
-	commandLast
 )
 
 type Command struct {
