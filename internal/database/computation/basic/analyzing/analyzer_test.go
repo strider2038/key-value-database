@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/strider2038/key-value-database/internal/database/computing/basic/analyzing"
+	"github.com/strider2038/key-value-database/internal/database/computation/basic/analyzing"
 	"github.com/strider2038/key-value-database/internal/database/querylang"
 )
 

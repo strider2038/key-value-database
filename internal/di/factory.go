@@ -5,9 +5,9 @@ import (
 	"log/slog"
 
 	"github.com/strider2038/key-value-database/internal/database"
-	"github.com/strider2038/key-value-database/internal/database/computing/basic"
-	"github.com/strider2038/key-value-database/internal/database/computing/basic/analyzing"
-	"github.com/strider2038/key-value-database/internal/database/computing/basic/parsing"
+	"github.com/strider2038/key-value-database/internal/database/computation/basic"
+	"github.com/strider2038/key-value-database/internal/database/computation/basic/analyzing"
+	"github.com/strider2038/key-value-database/internal/database/computation/basic/parsing"
 	"github.com/strider2038/key-value-database/internal/database/storage/inmemory"
 )
 
