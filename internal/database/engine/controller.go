@@ -1,4 +1,4 @@
-package database
+package engine
 
 import (
 	"context"
@@ -11,43 +11,41 @@ import (
 	"github.com/strider2038/key-value-database/internal/database/storage"
 )
 
-const Nil = "$_"
-
 type Computer interface {
 	ParseRequest(request string) (*querylang.Command, error)
 }
 
 type Storage interface {
-	Get(ctx context.Context, key string) (string, error)
-	Set(ctx context.Context, key, value string) error
-	Del(ctx context.Context, key string) error
+	Get(key string) (string, error)
+	Set(key, value string) error
+	Del(key string) error
 }
 
-type Database struct {
+type Controller struct {
 	computer Computer
 	storage  Storage
 	logger   *slog.Logger
 }
 
-func NewDatabase(
+func NewController(
 	computer Computer,
 	storage Storage,
 	logger *slog.Logger,
-) *Database {
-	return &Database{
+) *Controller {
+	return &Controller{
 		computer: computer,
 		storage:  storage,
 		logger:   logger,
 	}
 }
 
-func (db *Database) Execute(ctx context.Context, request string) (string, error) {
-	command, err := db.parseCommand(request)
+func (c *Controller) Execute(ctx context.Context, rawCommand string) (string, error) {
+	command, err := c.parseCommand(rawCommand)
 	if err != nil {
-		return "", err
+		return "", &BadRequestError{err: err}
 	}
 
-	result, err := db.handleCommand(ctx, command)
+	result, err := c.executeCommand(command)
 	if err != nil {
 		return "", fmt.Errorf("handle %s command: %w", command.ID(), err)
 	}
@@ -55,17 +53,17 @@ func (db *Database) Execute(ctx context.Context, request string) (string, error)
 	return result, nil
 }
 
-func (db *Database) parseCommand(request string) (*querylang.Command, error) {
+func (c *Controller) parseCommand(rawCommand string) (*querylang.Command, error) {
 	start := time.Now()
 
-	command, err := db.computer.ParseRequest(request)
+	command, err := c.computer.ParseRequest(rawCommand)
 	if err != nil {
-		return nil, fmt.Errorf("parse request: %w", err)
+		return nil, fmt.Errorf("parse command: %w", err)
 	}
 
-	db.logger.
+	c.logger.
 		With(
-			slog.String("request", request),
+			slog.String("rawCommand", rawCommand),
 			slog.Duration("duration", time.Since(start)),
 			slog.String("commandID", command.ID().String()),
 			slog.Any("commandArgs", command.Arguments()),
@@ -75,10 +73,10 @@ func (db *Database) parseCommand(request string) (*querylang.Command, error) {
 	return command, nil
 }
 
-func (db *Database) handleCommand(ctx context.Context, command *querylang.Command) (string, error) {
+func (c *Controller) executeCommand(command *querylang.Command) (string, error) {
 	start := time.Now()
 	defer func() {
-		db.logger.
+		c.logger.
 			With(
 				slog.Duration("duration", time.Since(start)),
 				slog.String("commandID", command.ID().String()),
@@ -89,23 +87,23 @@ func (db *Database) handleCommand(ctx context.Context, command *querylang.Comman
 
 	switch command.ID() {
 	case querylang.CommandGet:
-		return db.handleGet(ctx, command.Arguments())
+		return c.handleGet(command.Arguments())
 	case querylang.CommandSet:
-		return db.handleSet(ctx, command.Arguments())
+		return c.handleSet(command.Arguments())
 	case querylang.CommandDel:
-		return db.handleDel(ctx, command.Arguments())
+		return c.handleDel(command.Arguments())
 	default:
-		db.logger.Error("unsupported command", "commandID", command.ID().String())
+		c.logger.Error("unsupported command", "commandID", command.ID().String())
 
 		return "", nil
 	}
 }
 
-func (db *Database) handleGet(ctx context.Context, arguments []string) (string, error) {
-	value, err := db.storage.Get(ctx, arguments[0])
+func (c *Controller) handleGet(arguments []string) (string, error) {
+	value, err := c.storage.Get(arguments[0])
 	if err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
-			return Nil, nil
+			return querylang.Nil, nil
 		}
 
 		return "", err
@@ -114,16 +112,16 @@ func (db *Database) handleGet(ctx context.Context, arguments []string) (string, 
 	return value, nil
 }
 
-func (db *Database) handleSet(ctx context.Context, arguments []string) (string, error) {
-	if err := db.storage.Set(ctx, arguments[0], arguments[1]); err != nil {
+func (c *Controller) handleSet(arguments []string) (string, error) {
+	if err := c.storage.Set(arguments[0], arguments[1]); err != nil {
 		return "", err
 	}
 
 	return "OK", nil
 }
 
-func (db *Database) handleDel(ctx context.Context, arguments []string) (string, error) {
-	if err := db.storage.Del(ctx, arguments[0]); err != nil {
+func (c *Controller) handleDel(arguments []string) (string, error) {
+	if err := c.storage.Del(arguments[0]); err != nil {
 		return "", err
 	}
 
