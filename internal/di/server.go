@@ -1,9 +1,11 @@
 package di
 
 import (
+	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 
 	"github.com/strider2038/key-value-database/internal/config"
 	"github.com/strider2038/key-value-database/internal/database"
@@ -16,9 +18,12 @@ import (
 )
 
 func NewServer(options config.ServerOptions) (*database.Server, error) {
-	logger := newLogger(options.Logging)
+	logger, err := newLogger(options.Logging)
+	if err != nil {
+		return nil, fmt.Errorf("create logger: %w", err)
+	}
 
-	tcpServer := network.NewTCPServer(
+	tcpServer, err := network.NewTCPServer(
 		options.Network.Address,
 		options.Network.MaxConnections,
 		options.Network.MaxMessageSize,
@@ -26,6 +31,9 @@ func NewServer(options config.ServerOptions) (*database.Server, error) {
 		options.Network.OnServerStart,
 		logger,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("create TCP server: %w", err)
+	}
 
 	controller := engine.NewController(
 		basic.NewComputer(parsing.NewParser(), analyzing.NewAnalyzer(), logger),
@@ -40,23 +48,27 @@ func NewServer(options config.ServerOptions) (*database.Server, error) {
 	return server, nil
 }
 
-func newLogger(logging config.Logging) *slog.Logger {
-	var handler slog.Handler
-
-	options := &slog.HandlerOptions{Level: parseLogLevel(logging.Level)}
+func newLogger(logging config.Logging) (*slog.Logger, error) {
+	var output io.Writer
 
 	switch logging.Output {
 	case "", "discard":
-		handler = slog.NewTextHandler(io.Discard, options)
+		output = io.Discard
 	case "stdout":
-		handler = slog.NewTextHandler(os.Stdout, options)
+		output = os.Stdout
 	case "stderr":
-		handler = slog.NewTextHandler(os.Stderr, options)
+		output = os.Stderr
 	default:
-		// todo: file handler
+		file, err := createLogFile(logging.Output)
+		if err != nil {
+			return nil, fmt.Errorf("create log file: %w", err)
+		}
+		output = file
 	}
 
-	return slog.New(handler)
+	options := &slog.HandlerOptions{Level: parseLogLevel(logging.Level)}
+
+	return slog.New(slog.NewTextHandler(output, options)), nil
 }
 
 func parseLogLevel(level string) slog.Level {
@@ -72,4 +84,18 @@ func parseLogLevel(level string) slog.Level {
 	default:
 		return slog.LevelInfo
 	}
+}
+
+func createLogFile(filename string) (*os.File, error) {
+	dir := filepath.Dir(filename)
+	if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+		return nil, fmt.Errorf("create log dir %q: %w", dir, err)
+	}
+
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, os.ModePerm)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
 }

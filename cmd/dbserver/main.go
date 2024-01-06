@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os/signal"
 	"syscall"
@@ -16,15 +17,23 @@ func main() {
 		log.Fatalln("load config:", err)
 	}
 
+	if err := runServer(options); err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func runServer(options config.ServerOptions) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	server, err := di.NewServer(options)
 	if err != nil {
-		log.Fatalln("create server: ", err)
+		return fmt.Errorf("create server: %w", err)
 	}
 
 	if err := server.Serve(ctx); err != nil {
-		log.Fatalln("run server: ", err)
+		return fmt.Errorf("run server: %w", err)
 	}
+
+	return nil
 }

@@ -94,16 +94,18 @@ func TestServer_Serve(t *testing.T) {
 				Network: config.Network{
 					Address:        address,
 					MaxConnections: 1,
+					MaxMessageSize: 10_000,
+					IdleTimeout:    time.Second,
 					OnServerStart:  func() { close(waitServer) },
 				},
 			})
 			require.NoError(t, err)
 			go func() {
-				require.NoError(t, server.Serve(ctx))
+				assert.NoError(t, server.Serve(ctx))
 				close(waitFinish)
 			}()
 
-			<-waitServer
+			waitSecond(t, waitServer)
 			client, err := network.NewTCPClient(address, 10_000, time.Second)
 			require.NoError(t, err)
 			defer client.Close()
@@ -116,7 +118,16 @@ func TestServer_Serve(t *testing.T) {
 
 			client.Close()
 			stop()
-			<-waitFinish
+			waitSecond(t, waitFinish)
 		})
+	}
+}
+
+func waitSecond(tb testing.TB, wait chan struct{}) {
+	tb.Helper()
+	select {
+	case <-wait:
+	case <-time.After(time.Second):
+		assert.FailNow(tb, "waiting on channel")
 	}
 }

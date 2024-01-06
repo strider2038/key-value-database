@@ -27,9 +27,9 @@ func DefaultServerOptions() ServerOptions {
 }
 
 type ServerOptions struct {
-	Engine  Engine  `mapstructure:"engine"`
-	Network Network `mapstructure:"network"`
-	Logging Logging `mapstructure:"logging"`
+	Engine  Engine
+	Network Network
+	Logging Logging
 }
 
 func (p ServerOptions) Validate(ctx context.Context, validator *validation.Validator) error {
@@ -54,11 +54,11 @@ func (e Engine) Validate(ctx context.Context, validator *validation.Validator) e
 }
 
 type Network struct {
-	Address        string        `mapstructure:"address"`
-	MaxConnections int           `mapstructure:"max_connections"`
-	MaxMessageSize int           `mapstructure:"max_message_size"`
-	IdleTimeout    time.Duration `mapstructure:"idle_timeout"`
-	OnServerStart  func()        `mapstructure:"-"`
+	Address        string
+	MaxConnections int
+	MaxMessageSize int
+	IdleTimeout    time.Duration
+	OnServerStart  func()
 }
 
 func (n Network) Validate(ctx context.Context, validator *validation.Validator) error {
@@ -75,8 +75,8 @@ func (n Network) Validate(ctx context.Context, validator *validation.Validator) 
 }
 
 type Logging struct {
-	Level  string `mapstructure:"level"`
-	Output string `mapstructure:"output"`
+	Level  string
+	Output string
 }
 
 func (l Logging) Validate(ctx context.Context, validator *validation.Validator) error {

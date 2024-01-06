@@ -27,7 +27,16 @@ func NewTCPServer(
 	idleTimeout time.Duration,
 	onStartup func(),
 	logger *slog.Logger,
-) *TCPServer {
+) (*TCPServer, error) {
+	if maxConnections <= 0 {
+		return nil, fmt.Errorf("max connections should be > 0")
+	}
+	if maxMessageSize <= 0 {
+		return nil, fmt.Errorf("max message size should be > 0")
+	}
+	if idleTimeout <= 0 {
+		return nil, fmt.Errorf("idle timeout should be > 0")
+	}
 	if onStartup == nil {
 		onStartup = func() {}
 	}
@@ -39,7 +48,7 @@ func NewTCPServer(
 		idleTimeout:    idleTimeout,
 		onStartup:      onStartup,
 		logger:         logger,
-	}
+	}, nil
 }
 
 func (s *TCPServer) Serve(ctx context.Context, handler Handler) error {
@@ -99,35 +108,43 @@ func (s *TCPServer) Serve(ctx context.Context, handler Handler) error {
 }
 
 func (s *TCPServer) handleConnection(ctx context.Context, connection net.Conn, handler Handler) {
+	defer func() {
+		if err := connection.Close(); err != nil {
+			s.logger.Warn("close connection", "error", err)
+		}
+	}()
+
 	request := make([]byte, s.maxMessageSize)
 
 	for {
+		if err := ctx.Err(); err != nil {
+			s.logger.Warn("connection closed by context", "error", err)
+
+			return
+		}
+
 		deadline := time.Now().Add(s.idleTimeout)
 		s.logger.Debug("set deadline", "deadline", deadline)
 		if err := connection.SetDeadline(deadline); err != nil {
 			s.logger.Warn("set connection deadline", "error", err)
 
-			break
+			return
 		}
 
 		count, err := connection.Read(request)
 		if err != nil {
-			if err != io.EOF {
+			if !errors.Is(err, io.EOF) {
 				s.logger.Warn("read from connection", "error", err)
 			}
 
-			break
+			return
 		}
 
 		response := handler.Handle(ctx, request[:count])
 		if _, err := connection.Write(response); err != nil {
 			s.logger.Warn("write to connection", "error", err)
 
-			break
+			return
 		}
-	}
-
-	if err := connection.Close(); err != nil {
-		s.logger.Warn("close connection", "error", err)
 	}
 }
