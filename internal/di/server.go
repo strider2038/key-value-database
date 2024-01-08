@@ -43,6 +43,7 @@ func NewServer(options config.ServerOptions) (*database.Server, error) {
 	server := database.NewServer(
 		controller,
 		tcpServer,
+		logger,
 	)
 
 	return server, nil

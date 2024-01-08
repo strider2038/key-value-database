@@ -93,9 +93,7 @@ func (c *Controller) executeCommand(command *querylang.Command) (string, error) 
 	case querylang.CommandDel:
 		return c.handleDel(command.Arguments())
 	default:
-		c.logger.Error("unsupported command", "commandID", command.ID().String())
-
-		return "", nil
+		return "", fmt.Errorf("unsupported command: %s", command.ID().String())
 	}
 }
 

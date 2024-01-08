@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 
 	"github.com/strider2038/key-value-database/internal/database/engine"
 	"github.com/strider2038/key-value-database/internal/database/network"
@@ -16,10 +17,19 @@ type Network interface {
 type Server struct {
 	controller *engine.Controller
 	network    Network
+	logger     *slog.Logger
 }
 
-func NewServer(controller *engine.Controller, network Network) *Server {
-	return &Server{controller: controller, network: network}
+func NewServer(
+	controller *engine.Controller,
+	network Network,
+	logger *slog.Logger,
+) *Server {
+	return &Server{
+		controller: controller,
+		network:    network,
+		logger:     logger,
+	}
 }
 
 func (s *Server) Serve(ctx context.Context) error {
@@ -37,6 +47,8 @@ func (s *Server) handleRequest(ctx context.Context, request []byte) []byte {
 		if errors.As(err, &badRequest) {
 			return []byte(fmt.Sprintf("Bad request: %s", badRequest.Unwrap()))
 		}
+
+		s.logger.Error("Internal server error", "error", err)
 
 		return []byte("Internal server error")
 	}
