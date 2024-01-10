@@ -11,7 +11,7 @@ import (
 	"github.com/strider2038/key-value-database/internal/database/storage"
 )
 
-type Computer interface {
+type RequestParser interface {
 	ParseRequest(request string) (*querylang.Command, error)
 }
 
@@ -22,20 +22,20 @@ type Storage interface {
 }
 
 type Controller struct {
-	computer Computer
-	storage  Storage
-	logger   *slog.Logger
+	requestParser RequestParser
+	storage       Storage
+	logger        *slog.Logger
 }
 
 func NewController(
-	computer Computer,
+	requestParser RequestParser,
 	storage Storage,
 	logger *slog.Logger,
 ) *Controller {
 	return &Controller{
-		computer: computer,
-		storage:  storage,
-		logger:   logger,
+		requestParser: requestParser,
+		storage:       storage,
+		logger:        logger,
 	}
 }
 
@@ -56,7 +56,7 @@ func (c *Controller) Execute(ctx context.Context, rawCommand string) (string, er
 func (c *Controller) parseCommand(rawCommand string) (*querylang.Command, error) {
 	start := time.Now()
 
-	command, err := c.computer.ParseRequest(rawCommand)
+	command, err := c.requestParser.ParseRequest(rawCommand)
 	if err != nil {
 		return nil, fmt.Errorf("parse command: %w", err)
 	}
