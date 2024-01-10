@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/strider2038/key-value-database/internal/database/querylang"
+	"github.com/strider2038/key-value-database/internal/database/computation"
 )
 
 type Parser interface {
@@ -12,7 +12,7 @@ type Parser interface {
 }
 
 type Analyzer interface {
-	AnalyzeCommand(tokens []string) (*querylang.Command, error)
+	AnalyzeCommand(tokens []string) (*computation.Command, error)
 }
 
 type Computer struct {
@@ -25,7 +25,7 @@ func NewComputer(parser Parser, analyzer Analyzer, logger *slog.Logger) *Compute
 	return &Computer{parser: parser, analyzer: analyzer, logger: logger}
 }
 
-func (c *Computer) ParseRequest(request string) (*querylang.Command, error) {
+func (c *Computer) ParseRequest(request string) (*computation.Command, error) {
 	tokens, err := c.parser.ParseCommand(request)
 	if err != nil {
 		return nil, fmt.Errorf("parse command: %w", err)

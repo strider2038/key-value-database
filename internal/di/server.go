@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/spf13/afero"
 	"github.com/strider2038/key-value-database/internal/config"
 	"github.com/strider2038/key-value-database/internal/database"
 	"github.com/strider2038/key-value-database/internal/database/computation/basic"
@@ -14,10 +15,16 @@ import (
 	"github.com/strider2038/key-value-database/internal/database/computation/basic/parsing"
 	"github.com/strider2038/key-value-database/internal/database/engine"
 	"github.com/strider2038/key-value-database/internal/database/network"
+	"github.com/strider2038/key-value-database/internal/database/storage"
 	"github.com/strider2038/key-value-database/internal/database/storage/inmemory"
+	"github.com/strider2038/key-value-database/internal/database/storage/wal"
 )
 
-func NewServer(options config.ServerOptions) (*database.Server, error) {
+func NewServer(options *config.ServerOptions) (*database.Server, error) {
+	if options.FS == nil {
+		options.FS = afero.NewOsFs()
+	}
+
 	logger, err := newLogger(options.Logging)
 	if err != nil {
 		return nil, fmt.Errorf("create logger: %w", err)
@@ -35,16 +42,40 @@ func NewServer(options config.ServerOptions) (*database.Server, error) {
 		return nil, fmt.Errorf("create TCP server: %w", err)
 	}
 
+	server := database.NewServer()
+
+	var storageController engine.StorageController
+	storageController = storage.NewController(inmemory.NewMapStorage())
+
+	if options.WAL.Enabled {
+		walController, err := wal.NewController(
+			storageController,
+			options.FS,
+			logger,
+			options.WAL.FlushingBatchSize,
+			options.WAL.FlushingBatchTimeout,
+			options.WAL.MaxSegmentSize,
+			options.WAL.DataDirectory,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("init WAL controller: %w", err)
+		}
+
+		storageController = walController
+		server.AddService(walController)
+	}
+
 	controller := engine.NewController(
 		basic.NewComputer(parsing.NewParser(), analyzing.NewAnalyzer(), logger),
-		inmemory.NewMapStorage(),
+		storageController,
 		logger,
 	)
-	server := database.NewServer(
+	networkService := database.NewNetworkService(
 		controller,
 		tcpServer,
 		logger,
 	)
+	server.AddService(networkService)
 
 	return server, nil
 }

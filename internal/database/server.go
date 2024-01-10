@@ -4,54 +4,50 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
-
-	"github.com/strider2038/key-value-database/internal/database/engine"
-	"github.com/strider2038/key-value-database/internal/database/network"
+	"sync"
 )
 
-type Network interface {
-	Serve(ctx context.Context, handler network.Handler) error
+type Service interface {
+	Serve(ctx context.Context) error
 }
 
 type Server struct {
-	controller *engine.Controller
-	network    Network
-	logger     *slog.Logger
+	services []Service
 }
 
-func NewServer(
-	controller *engine.Controller,
-	network Network,
-	logger *slog.Logger,
-) *Server {
-	return &Server{
-		controller: controller,
-		network:    network,
-		logger:     logger,
-	}
+func NewServer() *Server {
+	return &Server{}
+}
+
+func (s *Server) AddService(service Service) {
+	s.services = append(s.services, service)
 }
 
 func (s *Server) Serve(ctx context.Context) error {
-	if err := s.network.Serve(ctx, network.HandlerFunc(s.handleRequest)); err != nil {
-		return fmt.Errorf("serve: %w", err)
+	if len(s.services) == 0 {
+		return fmt.Errorf("empty services")
 	}
 
-	return nil
-}
+	serveContext, cancel := context.WithCancel(ctx)
+	defer cancel()
 
-func (s *Server) handleRequest(ctx context.Context, request []byte) []byte {
-	response, err := s.controller.Execute(ctx, string(request))
-	if err != nil {
-		var badRequest *engine.BadRequestError
-		if errors.As(err, &badRequest) {
-			return []byte(fmt.Sprintf("Bad request: %s", badRequest.Unwrap()))
-		}
+	mu := sync.Mutex{}
+	var errs []error
 
-		s.logger.Error("Internal server error", "error", err)
-
-		return []byte("Internal server error")
+	waiter := sync.WaitGroup{}
+	waiter.Add(len(s.services))
+	for _, service := range s.services {
+		go func(s Service) {
+			defer waiter.Done()
+			if err := s.Serve(serveContext); err != nil {
+				mu.Lock()
+				errs = append(errs, err)
+				mu.Unlock()
+				cancel()
+			}
+		}(service)
 	}
+	waiter.Wait()
 
-	return []byte(response)
+	return errors.Join(errs...)
 }

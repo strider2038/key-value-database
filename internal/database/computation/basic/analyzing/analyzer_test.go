@@ -85,8 +85,8 @@ func TestAnalyzer_AnalyzeCommand(t *testing.T) {
 
 			if test.wantError == nil {
 				require.NoError(t, err)
-				assert.Equal(t, test.wantCommand.String(), command.ID().String())
-				assert.Equal(t, test.wantArguments, command.Arguments())
+				assert.Equal(t, test.wantCommand.String(), command.ID.String())
+				assert.Equal(t, test.wantArguments, command.Arguments)
 			} else {
 				assert.Nil(t, command)
 				assert.ErrorIs(t, err, test.wantError)

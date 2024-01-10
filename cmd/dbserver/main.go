@@ -22,7 +22,7 @@ func main() {
 	}
 }
 
-func runServer(options config.ServerOptions) error {
+func runServer(options *config.ServerOptions) error {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 

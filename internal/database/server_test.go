@@ -90,7 +90,7 @@ func TestServer_Serve(t *testing.T) {
 			waitServer := make(chan struct{})
 			waitFinish := make(chan struct{})
 
-			server, err := di.NewServer(config.ServerOptions{
+			server, err := di.NewServer(&config.ServerOptions{
 				Network: config.Network{
 					Address:        address,
 					MaxConnections: 1,

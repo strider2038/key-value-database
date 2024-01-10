@@ -114,24 +114,42 @@ func (s *TCPServer) handleConnection(ctx context.Context, connection net.Conn, h
 		}
 	}()
 
+	// Постоянный буфер для входящих сообщений соединения
 	request := make([]byte, s.maxMessageSize)
 
 	for {
-		if err := ctx.Err(); err != nil {
-			s.logger.Warn("connection closed by context", "error", err)
-
-			return
-		}
-
 		deadline := time.Now().Add(s.idleTimeout)
-		s.logger.Debug("set deadline", "deadline", deadline)
 		if err := connection.SetDeadline(deadline); err != nil {
 			s.logger.Warn("set connection deadline", "error", err)
 
 			return
 		}
 
-		count, err := connection.Read(request)
+		// Вычитываем входящий запрос асинхронно, по завершению чтения
+		// канал done закрывается
+		done := make(chan struct{})
+		var count int
+		var err error
+		go func() {
+			count, err = connection.Read(request)
+			close(done)
+		}()
+
+		// Ждем либо успешного вычитывания запроса (по закрытию канала done),
+		// либо сигнала graceful shutdown из контекста.
+		select {
+		case <-ctx.Done():
+			// Если получили сигнал завершения, то прерываем чтение из соединения
+			// выходим из цикла и принудительно закрываем соединение.
+			s.logger.Warn("connection closed by context", "error", ctx.Err())
+
+			return
+			// Если успели вычитать сигнал, то дальнейшая работа гарантирует
+			// запуск handler'а для обработки запроса и формирование ответа.
+		case <-done:
+		}
+
+		// В случае ошибок соединения, цикл прерывается.
 		if err != nil {
 			if !errors.Is(err, io.EOF) {
 				s.logger.Warn("read from connection", "error", err)

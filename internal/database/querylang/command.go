@@ -9,7 +9,7 @@ func (c CommandID) String() string {
 	case CommandSet:
 		return "SET"
 	case CommandDel:
-		return "DET"
+		return "DEL"
 	default:
 		return ""
 	}
@@ -23,13 +23,19 @@ const (
 )
 
 type Command struct {
+	seqID     uint64
 	id        CommandID
 	arguments []string
 }
 
+func (c *Command) SeqID() uint64       { return c.seqID }
 func (c *Command) ID() CommandID       { return c.id }
 func (c *Command) Arguments() []string { return c.arguments }
 
-func NewCommand(id CommandID, arguments ...string) *Command {
-	return &Command{id: id, arguments: arguments}
+func (c *Command) IsReadOperation() bool {
+	return c.id == CommandGet
+}
+
+func NewCommand(seqID uint64, id CommandID, arguments ...string) *Command {
+	return &Command{seqID: seqID, id: id, arguments: arguments}
 }
