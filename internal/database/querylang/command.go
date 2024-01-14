@@ -9,7 +9,7 @@ func (c CommandID) String() string {
 	case CommandSet:
 		return "SET"
 	case CommandDel:
-		return "DET"
+		return "DEL"
 	default:
 		return ""
 	}
