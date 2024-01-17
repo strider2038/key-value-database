@@ -21,8 +21,9 @@ import (
 )
 
 func NewServer(options *config.ServerOptions) (*database.Server, error) {
-	if options.FS == nil {
-		options.FS = afero.NewOsFs()
+	fs := options.FS
+	if fs == nil {
+		fs = afero.NewOsFs()
 	}
 
 	logger, err := newLogger(options.Logging)
@@ -50,7 +51,7 @@ func NewServer(options *config.ServerOptions) (*database.Server, error) {
 	if options.WAL.Enabled {
 		walController, err := wal.NewController(
 			storageController,
-			options.FS,
+			fs,
 			logger,
 			options.WAL.FlushingBatchSize,
 			options.WAL.FlushingBatchTimeout,

@@ -197,7 +197,7 @@ func (l *Log) flush() {
 	}
 }
 
-// serveQueue обслуживает канал очереди записи команд в WAL лог на журнал.
+// serveQueue обслуживает канал очереди записи команд в WAL журнал.
 func (l *Log) serveQueue() {
 	for tasks := range l.queue {
 		records := make([]*LogRecord, 0, len(tasks))
