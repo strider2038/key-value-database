@@ -14,18 +14,22 @@ const (
 	DefaultMaxMessageSize = 10_000
 	DefaultMaxConnections = 100
 	DefaultIdleTimeout    = time.Minute
+
+	DefaultWALFlushingBatchSize    = 100
+	DefaultWALFlushingBatchTimeout = 20 * time.Millisecond
+	DefaultWALMaxSegmentSize       = 4 * 1024 * 1024
 )
 
-func DefaultServerOptions() ServerOptions {
-	return ServerOptions{
+func DefaultServerOptions() *ServerOptions {
+	return &ServerOptions{
 		Engine: Engine{
 			Type: "in_memory",
 		},
 		WAL: WAL{
 			Enabled:              true,
-			FlushingBatchSize:    100,
-			FlushingBatchTimeout: 20 * time.Millisecond,
-			MaxSegmentSize:       4 * 1024 * 1024,
+			FlushingBatchSize:    DefaultWALFlushingBatchSize,
+			FlushingBatchTimeout: DefaultWALFlushingBatchTimeout,
+			MaxSegmentSize:       DefaultWALMaxSegmentSize,
 			DataDirectory:        "/wal",
 		},
 		Network: Network{
