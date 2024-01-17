@@ -9,8 +9,15 @@ import (
 	"github.com/spf13/afero"
 )
 
-func DefaultServerOptions() *ServerOptions {
-	return &ServerOptions{
+const (
+	DefaultAddress        = "localhost:3434"
+	DefaultMaxMessageSize = 10_000
+	DefaultMaxConnections = 100
+	DefaultIdleTimeout    = time.Minute
+)
+
+func DefaultServerOptions() ServerOptions {
+	return ServerOptions{
 		Engine: Engine{
 			Type: "in_memory",
 		},
@@ -23,7 +30,7 @@ func DefaultServerOptions() *ServerOptions {
 		},
 		Network: Network{
 			Address:        DefaultAddress,
-			MaxConnections: 100,
+			MaxConnections: DefaultMaxConnections,
 			MaxMessageSize: DefaultMaxMessageSize,
 			IdleTimeout:    DefaultIdleTimeout,
 		},
