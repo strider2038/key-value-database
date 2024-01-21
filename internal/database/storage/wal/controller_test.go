@@ -17,9 +17,14 @@ import (
 	"github.com/strider2038/key-value-database/internal/database/storage"
 	"github.com/strider2038/key-value-database/internal/database/storage/inmemory"
 	"github.com/strider2038/key-value-database/internal/database/storage/wal"
+	"go.uber.org/goleak"
 )
 
 const walDirectory = "/test/dir"
+
+func TestMain(m *testing.M) {
+	goleak.VerifyTestMain(m)
+}
 
 type Data struct {
 	value string

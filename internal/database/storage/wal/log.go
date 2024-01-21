@@ -124,7 +124,7 @@ func (l *Log) Add(command *querylang.Command) error {
 		} else if len(l.buffer) == 1 {
 			// по добавлению первого элемента в буфер (если максимальный размер != 1),
 			// запускаем таймер на сброс буфера
-			l.flushByTimeout()
+			go l.flushByTimeout()
 		}
 	})
 
@@ -180,7 +180,7 @@ func (l *Log) flushByTimeout() {
 	defer timer.Stop()
 
 	<-timer.C
-	l.flush()
+	l.withLock(l.flush)
 }
 
 // flush запускает процедуру записи накопленного буфер команд на жесткий диск.
