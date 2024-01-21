@@ -119,7 +119,12 @@ func (l *Log) Add(command *querylang.Command) error {
 	l.withLock(func() {
 		l.buffer = append(l.buffer, task)
 		if len(l.buffer) >= l.flushingBatchSize {
+			// если буфер заполнился, то сразу сбрасываем его
 			l.flush()
+		} else if len(l.buffer) == 1 {
+			// по добавлению первого элемента в буфер (если максимальный размер != 1),
+			// запускаем таймер на сброс буфера
+			l.flushByTimeout()
 		}
 	})
 
@@ -145,7 +150,7 @@ func (l *Log) Serve(ctx context.Context) {
 	waiter.Add(2)
 	go func() {
 		defer waiter.Done()
-		l.flushByTicker(ctx)
+		<-ctx.Done()
 		close(l.queue)
 	}()
 	go func() {
@@ -170,21 +175,12 @@ func (l *Log) Restore() ([]*querylang.Command, error) {
 	return commands, nil
 }
 
-func (l *Log) flushByTicker(ctx context.Context) {
-	ticker := time.NewTicker(l.flushingBatchTimeout)
-	defer ticker.Stop()
+func (l *Log) flushByTimeout() {
+	timer := time.NewTimer(l.flushingBatchTimeout)
+	defer timer.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			l.withLock(l.flush)
-
-		case <-ctx.Done():
-			l.withLock(l.flush)
-
-			return
-		}
-	}
+	<-timer.C
+	l.flush()
 }
 
 // flush запускает процедуру записи накопленного буфер команд на жесткий диск.

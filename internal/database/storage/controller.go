@@ -7,6 +7,12 @@ import (
 	"github.com/strider2038/key-value-database/internal/database/querylang"
 )
 
+type Storage interface {
+	Get(key string) (string, error)
+	Set(key, value string) error
+	Del(key string) error
+}
+
 type Controller struct {
 	storage Storage
 }

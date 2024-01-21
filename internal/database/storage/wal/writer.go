@@ -37,13 +37,18 @@ func NewWriter(
 		return nil, fmt.Errorf("segment size must be > 0")
 	}
 
-	return &Writer{
+	w := &Writer{
 		fs:             fs,
 		logger:         logger,
 		maxSegmentSize: maxSegmentSize,
 		directory:      strings.TrimSuffix(directory, "/"),
 		sessionID:      sessionID,
-	}, nil
+	}
+	if err := w.init(); err != nil {
+		return nil, err
+	}
+
+	return w, nil
 }
 
 // WriteRecords записывает пачку элементов журнала в текущий файл сегмента.
@@ -78,6 +83,14 @@ func (w *Writer) WriteRecords(records []*LogRecord) error {
 	return nil
 }
 
+func (w *Writer) init() error {
+	if err := w.fs.MkdirAll(w.directory, os.ModePerm); err != nil {
+		return fmt.Errorf("create WAL directory: %w", err)
+	}
+
+	return nil
+}
+
 // rotate создает новый файл сегмента WAL журнала. Файлы создаются в директории
 // directory, имя формируется как wal_<session_id>_<segment_no>.log,
 // где session_id - идентификатор сессии WAL журнала, segment_no - последовательный номер
@@ -85,10 +98,6 @@ func (w *Writer) WriteRecords(records []*LogRecord) error {
 func (w *Writer) rotate() error {
 	if w.file != nil {
 		w.file.Close()
-	}
-
-	if err := w.fs.MkdirAll(w.directory, os.ModePerm); err != nil {
-		return fmt.Errorf("create WAL directory: %w", err)
 	}
 
 	filename := fmt.Sprintf("%s/wal_%d_%08d.log", w.directory, w.sessionID, w.segmentNo)
