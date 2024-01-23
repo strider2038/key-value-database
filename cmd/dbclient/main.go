@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -33,7 +35,11 @@ func main() {
 		}
 		result, err := client.Send([]byte(command))
 		if err != nil {
-			fmt.Println("ERROR: ", err.Error())
+			if errors.Is(err, io.EOF) {
+				fmt.Println("server closed a connection")
+			} else {
+				fmt.Println("ERROR: ", err.Error())
+			}
 
 			break
 		}

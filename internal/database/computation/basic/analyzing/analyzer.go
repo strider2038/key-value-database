@@ -3,6 +3,7 @@ package analyzing
 import (
 	"fmt"
 
+	"github.com/strider2038/key-value-database/internal/database/computation"
 	"github.com/strider2038/key-value-database/internal/database/querylang"
 )
 
@@ -12,7 +13,7 @@ func NewAnalyzer() *Analyzer {
 	return &Analyzer{}
 }
 
-func (a *Analyzer) AnalyzeCommand(tokens []string) (*querylang.Command, error) {
+func (a *Analyzer) AnalyzeCommand(tokens []string) (*computation.Command, error) {
 	if len(tokens) == 0 {
 		return nil, ErrEmptyTokens
 	}
@@ -32,7 +33,7 @@ func (a *Analyzer) AnalyzeCommand(tokens []string) (*querylang.Command, error) {
 	return nil, ErrUnknownCommand
 }
 
-func newCommand(id querylang.CommandID, argumentsCount int, arguments []string) (*querylang.Command, error) {
+func newCommand(id querylang.CommandID, argumentsCount int, arguments []string) (*computation.Command, error) {
 	if len(arguments) < argumentsCount {
 		return nil, fmt.Errorf("invalid %q command: %w", id, ErrNotEnoughArguments)
 	}
@@ -40,5 +41,8 @@ func newCommand(id querylang.CommandID, argumentsCount int, arguments []string) 
 		return nil, fmt.Errorf("invalid %q command: %w", id, ErrTooMuchArguments)
 	}
 
-	return querylang.NewCommand(id, arguments...), nil
+	return &computation.Command{
+		ID:        id,
+		Arguments: arguments,
+	}, nil
 }
